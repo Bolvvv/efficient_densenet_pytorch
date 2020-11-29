@@ -102,3 +102,6 @@ ENV/
 
 # vscode project settings
 .vscode
+
+test.py
+final_result

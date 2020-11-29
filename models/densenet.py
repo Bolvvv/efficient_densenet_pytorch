@@ -99,11 +99,11 @@ class DenseNet(nn.Module):
         # First convolution
         if small_inputs:
             self.features = nn.Sequential(OrderedDict([
-                ('conv0', nn.Conv2d(3, num_init_features, kernel_size=3, stride=1, padding=1, bias=False)),
+                ('conv0', nn.Conv2d(1, num_init_features, kernel_size=3, stride=1, padding=1, bias=False)),
             ]))
         else:
             self.features = nn.Sequential(OrderedDict([
-                ('conv0', nn.Conv2d(3, num_init_features, kernel_size=7, stride=2, padding=3, bias=False)),
+                ('conv0', nn.Conv2d(1, num_init_features, kernel_size=7, stride=2, padding=3, bias=False)),
             ]))
             self.features.add_module('norm0', nn.BatchNorm2d(num_init_features))
             self.features.add_module('relu0', nn.ReLU(inplace=True))

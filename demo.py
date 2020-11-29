@@ -4,6 +4,7 @@ import time
 import torch
 from torchvision import datasets, transforms
 from models import DenseNet
+from CustomDataset import CustomDataset
 
 
 class AverageMeter(object):
@@ -91,7 +92,6 @@ def test_epoch(model, loader, print_freq=1, is_test=True):
             if torch.cuda.is_available():
                 input = input.cuda()
                 target = target.cuda()
-
             # compute output
             output = model(input)
             loss = torch.nn.functional.cross_entropy(output, target)
@@ -128,14 +128,14 @@ def train(model, train_set, valid_set, test_set, save, n_epochs=300,
 
     # Data loaders
     train_loader = torch.utils.data.DataLoader(train_set, batch_size=batch_size, shuffle=True,
-                                               pin_memory=(torch.cuda.is_available()), num_workers=0)
+                                               pin_memory=(torch.cuda.is_available()), num_workers=2)
     test_loader = torch.utils.data.DataLoader(test_set, batch_size=batch_size, shuffle=False,
-                                              pin_memory=(torch.cuda.is_available()), num_workers=0)
+                                              pin_memory=(torch.cuda.is_available()), num_workers=2)
     if valid_set is None:
         valid_loader = None
     else:
         valid_loader = torch.utils.data.DataLoader(valid_set, batch_size=batch_size, shuffle=False,
-                                                   pin_memory=(torch.cuda.is_available()), num_workers=0)
+                                                   pin_memory=(torch.cuda.is_available()), num_workers=2)
     # Model on cuda
     if torch.cuda.is_available():
         model = model.cuda()
@@ -205,7 +205,7 @@ def train(model, train_set, valid_set, test_set, save, n_epochs=300,
     print('Final test error: %.4f' % test_error)
 
 
-def demo(data, save, depth=100, growth_rate=12, efficient=True, valid_size=5000,
+def demo(data, save, depth=100, growth_rate=12, efficient=True, valid_size=82,
          n_epochs=300, batch_size=64, seed=None):
     """
     A demo to show off training of efficient DenseNets.
@@ -232,25 +232,29 @@ def demo(data, save, depth=100, growth_rate=12, efficient=True, valid_size=5000,
     block_config = [(depth - 4) // 6 for _ in range(3)]
 
     # Data transforms
-    mean = [0.5071, 0.4867, 0.4408]
-    stdv = [0.2675, 0.2565, 0.2761]
+    mean = [0.5,]
+    stdv = [0.2,]
     train_transforms = transforms.Compose([
+        transforms.Resize((330, 250)),
         transforms.RandomCrop(32, padding=4),
         transforms.RandomHorizontalFlip(),
         transforms.ToTensor(),
         transforms.Normalize(mean=mean, std=stdv),
     ])
     test_transforms = transforms.Compose([
+        transforms.Resize((330, 250)),
         transforms.ToTensor(),
         transforms.Normalize(mean=mean, std=stdv),
     ])
 
     # Datasets
-    train_set = datasets.CIFAR10(data, train=True, transform=train_transforms, download=True)
-    test_set = datasets.CIFAR10(data, train=False, transform=test_transforms, download=False)
+    # train_set = datasets.CIFAR10(data, train=True, transform=train_transforms, download=True)
+    # test_set = datasets.CIFAR10(data, train=False, transform=test_transforms, download=False)
+    train_set = CustomDataset(filename="../data/inbreast/label.txt", image_dir="../data/inbreast/Inbreast", transform=train_transforms)
+    test_set = CustomDataset(filename="../data/inbreast/test_label.txt", image_dir="../data/inbreast/Inbreast", transform=test_transforms)
 
     if valid_size:
-        valid_set = datasets.CIFAR10(data, train=True, transform=test_transforms)
+        valid_set = CustomDataset(filename="../data/inbreast/label.txt", image_dir="../data/inbreast/Inbreast", transform=test_transforms)
         indices = torch.randperm(len(train_set))
         train_indices = indices[:len(indices) - valid_size]
         valid_indices = indices[len(indices) - valid_size:]
@@ -264,7 +268,7 @@ def demo(data, save, depth=100, growth_rate=12, efficient=True, valid_size=5000,
         growth_rate=growth_rate,
         block_config=block_config,
         num_init_features=growth_rate*2,
-        num_classes=10,
+        num_classes=3,
         small_inputs=True,
         efficient=efficient,
     )
@@ -303,5 +307,7 @@ Other args:
     --batch_size (int) - size of minibatch (default 256)
     --seed (int) - manually set the random seed (default None)
 """
+
+#python demo.py --efficient True --data "../data"  --save "test.pkl" --batch_size 32 --n_epochs 10
 if __name__ == '__main__':
     fire.Fire(demo)
